@@ -8,7 +8,7 @@ import session from "express-session";
 dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 /* ============================================================
    MIDDLEWARE
@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 
 app.use(
   cors({
-    origin: "http://localhost:8000",
+    origin: process.env.FRONTEND_URL || "http://localhost:8000",
     credentials: true,
   })
 );
@@ -29,7 +29,7 @@ app.use(
 
 app.use(
   session({
-    secret: "dev-secret",
+    secret: process.env.SESSION_SECRET || "dev-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -49,6 +49,10 @@ const db = new pg.Pool({
   database: process.env.PG_DATABASE,
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 console.log("✅ Database pool created");
@@ -143,8 +147,9 @@ app.get("/api/bloodbanks", async (req, res) => {
 app.get("/api/nearest", async (req, res) => {
   const { lat, lon } = req.query;
 
-  if (!lat || !lon)
+  if (!lat || !lon) {
     return res.status(400).json({ error: "Latitude & Longitude required" });
+  }
 
   try {
     const result = await db.query(
@@ -169,6 +174,7 @@ app.get("/api/nearest", async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Nearest search failed" });
   }
 });
@@ -184,7 +190,8 @@ app.get("/api/camps", async (req, res) => {
       `SELECT * FROM camps ORDER BY camp_date ASC`
     );
     res.json(result.rows);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to fetch camps" });
   }
 });
@@ -222,7 +229,8 @@ app.post("/api/camps", async (req, res) => {
     );
 
     res.json({ message: "Camp created successfully" });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to create camp" });
   }
 });
@@ -231,8 +239,9 @@ app.post("/api/camps", async (req, res) => {
 app.post("/api/camps/register", async (req, res) => {
   const { campId } = req.body;
 
-  if (!req.session.user)
+  if (!req.session.user) {
     return res.status(401).json({ message: "Login required" });
+  }
 
   try {
     await db.query(
@@ -243,7 +252,8 @@ app.post("/api/camps/register", async (req, res) => {
     );
 
     res.json({ message: "Registered successfully" });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Registration failed" });
   }
 });
@@ -257,9 +267,18 @@ app.get("/api/camps/:id/registrations", async (req, res) => {
     );
 
     res.json({ count: result.rows[0].count });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed" });
   }
+});
+
+/* ============================================================
+   HEALTH CHECK
+============================================================ */
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ message: "Backend is running" });
 });
 
 /* ============================================================
@@ -267,5 +286,5 @@ app.get("/api/camps/:id/registrations", async (req, res) => {
 ============================================================ */
 
 app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });
