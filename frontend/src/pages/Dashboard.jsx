@@ -9,20 +9,14 @@ import {
   Clock,
   Users,
   AlertTriangle,
-  ArrowRight,
-  Search,
   User,
 } from "lucide-react";
 
-/* STATIC UI DATA (OK TO KEEP) */
+/* ✅ IMPORT AXIOS INSTANCE */
+import API from "@/api/api";
+
+/* STATIC UI DATA */
 const quickActions = [
-  {
-    icon: Search,
-    title: "Find Blood",
-    description: "Search for blood availability",
-    path: "/search",
-    color: "bg-primary/10 text-primary",
-  },
   {
     icon: MapPin,
     title: "Nearby Banks",
@@ -50,22 +44,14 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  /* FETCH LOGGED-IN USER */
+  /* ================= FETCH USER ================= */
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("/api/me", {
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          navigate("/login");
-          return;
-        }
-
-        const data = await res.json();
-        setUser(data);
-      } catch {
+        const res = await API.get("/api/me"); // ✅ FIXED
+        setUser(res.data);
+      } catch (err) {
+        /* ❌ If token invalid → redirect */
         navigate("/login");
       }
     };
@@ -87,33 +73,34 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen pt-24 pb-12 bg-background">
       <div className="container mx-auto px-4">
-        {/* Welcome Header */}
+
+        {/* Welcome */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+          <h1 className="text-3xl font-bold mb-2">
             Welcome back, {user.full_name.split(" ")[0]} 👋
           </h1>
           <p className="text-muted-foreground">
-            Your dashboard to manage donations and save lives
+            Your dashboard to manage donations
           </p>
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Stat icon={<Heart />} value="—" label="Total Donations" />
           <Stat icon={<Users />} value="—" label="Lives Saved" />
           <Stat
             icon={<Clock />}
-            value={
-              user.last_donation ? "—" : "Eligible"
-            }
-            label="Donation Status"
+            value={user.last_donation ? "Recently Donated" : "Eligible"}
+            label="Status"
           />
           <Stat icon={<Bell />} value="—" label="Alerts" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* MAIN */}
+
+          {/* LEFT */}
           <div className="lg:col-span-2 space-y-8">
+
             {/* Quick Actions */}
             <div>
               <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
@@ -122,7 +109,7 @@ const Dashboard = () => {
                   <Link
                     key={i}
                     to={action.path}
-                    className="bg-card rounded-2xl border p-5 hover:shadow-lg transition"
+                    className="bg-card rounded-2xl border p-5 hover:shadow-lg"
                   >
                     <div
                       className={`w-12 h-12 rounded-xl ${action.color} flex items-center justify-center mb-4`}
@@ -138,28 +125,29 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Reminder */}
+            {/* Donation Status */}
             {user.is_available && (
               <div className="gradient-primary rounded-2xl p-6">
-                <h3 className="text-lg font-bold text-primary-foreground mb-2">
+                <h3 className="text-lg font-bold mb-2">
                   Donation Status
                 </h3>
-                <p className="text-primary-foreground/80">
+                <p>
                   {user.last_donation
                     ? `Last donated on ${formatDate(user.last_donation)}`
-                    : "You have not donated yet. You are eligible!"}
+                    : "You are eligible to donate!"}
                 </p>
               </div>
             )}
           </div>
 
-          {/* SIDEBAR */}
+          {/* RIGHT */}
           <div className="space-y-6">
-            {/* Profile Card */}
+
+            {/* Profile */}
             <div className="bg-card rounded-2xl border p-5">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 gradient-primary rounded-xl flex items-center justify-center">
-                  <User className="w-7 h-7 text-primary-foreground" />
+                  <User className="w-7 h-7 text-white" />
                 </div>
                 <div>
                   <h3 className="font-bold">{user.full_name}</h3>
@@ -168,21 +156,20 @@ const Dashboard = () => {
                   </span>
                 </div>
               </div>
+
               <Link to="/profile">
-                <Button variant="outline" className="w-full">
-                  View Profile
-                </Button>
+                <Button className="w-full">View Profile</Button>
               </Link>
             </div>
 
             {/* Info */}
             <div className="bg-muted/50 rounded-2xl p-5">
               <h3 className="font-bold mb-2">Did You Know?</h3>
-              <p className="text-sm text-muted-foreground">
-                Your blood group <b>{user.blood_group}</b> is always in demand.
-                Thank you for being a donor ❤️
+              <p className="text-sm">
+                Your blood group <b>{user.blood_group}</b> is always in demand ❤️
               </p>
             </div>
+
           </div>
         </div>
       </div>

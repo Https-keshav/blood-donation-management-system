@@ -11,10 +11,12 @@ import {
   Clock,
   Award,
   Edit2,
-  Bell,
   LogOut,
   Trash2,
 } from "lucide-react";
+
+/* ✅ IMPORT AXIOS */
+import API from "@/api/api";
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -23,19 +25,18 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
 
-  /* ---------------- FETCH USER ---------------- */
+  /* ================= FETCH USER ================= */
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("/api/me", { credentials: "include" });
-        if (!res.ok) return navigate("/login");
-        const data = await res.json();
-        setUser(data);
-        setForm(data);
+        const res = await API.get("/api/me"); // ✅ FIXED
+        setUser(res.data);
+        setForm(res.data);
       } catch {
         navigate("/login");
       }
     };
+
     fetchUser();
   }, [navigate]);
 
@@ -48,22 +49,16 @@ const Profile = () => {
       day: "numeric",
     });
 
-  /* ---------------- SAVE PROFILE ---------------- */
+  /* ================= SAVE PROFILE ================= */
   const saveProfile = async () => {
     try {
-      const res = await fetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: form.email,
-          phone: form.phone,
-          location: form.location,
-          last_donation: form.last_donation || null,
-        }),
+      const res = await API.put("/api/profile", {
+        email: form.email,
+        phone: form.phone,
+        location: form.location,
+        last_donation: form.last_donation || null,
       });
 
-      if (!res.ok) throw new Error();
       setUser(form);
       setEditMode(false);
       alert("Profile updated successfully");
@@ -72,33 +67,43 @@ const Profile = () => {
     }
   };
 
-  /* ---------------- AVAILABILITY TOGGLE ---------------- */
+  /* ================= TOGGLE ================= */
   const toggleAvailability = async () => {
     const updated = { ...user, is_available: !user.is_available };
+
     setUser(updated);
     setForm(updated);
 
-    await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(updated),
-    });
+    try {
+      await API.put("/api/profile", updated);
+    } catch {
+      alert("Failed to update availability");
+    }
+  };
+
+  /* ================= LOGOUT ================= */
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   return (
     <div className="min-h-screen pt-24 pb-12 bg-background">
       <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ---------------- LEFT CARD ---------------- */}
+
+        {/* LEFT CARD */}
         <div className="bg-card rounded-2xl border sticky top-24 overflow-hidden">
           <div className="gradient-primary p-6 text-center">
-            <div className="w-24 h-24 bg-primary-foreground/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-12 h-12 text-primary-foreground" />
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 bg-white/20">
+              <User className="w-12 h-12 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-primary-foreground">
+
+            <h2 className="text-xl font-bold text-white">
               {user.full_name}
             </h2>
-            <span className="text-2xl font-bold text-primary-foreground">
+
+            <span className="text-2xl font-bold text-white">
               {user.blood_group}
             </span>
           </div>
@@ -112,50 +117,36 @@ const Profile = () => {
               value={`Joined ${formatDate(user.created_at)}`}
             />
 
-            {/* Availability */}
+            {/* Toggle */}
             <div className="flex justify-between items-center border-t pt-4">
               <span>Available for Donation</span>
               <button
                 onClick={toggleAvailability}
                 className={`w-12 h-6 rounded-full ${
-                  user.is_available ? "bg-success" : "bg-muted"
+                  user.is_available ? "bg-green-500" : "bg-gray-400"
                 }`}
               >
                 <div
                   className={`w-5 h-5 bg-white rounded-full transform ${
-                    user.is_available ? "translate-x-6" : "translate-x-0.5"
+                    user.is_available ? "translate-x-6" : "translate-x-1"
                   }`}
                 />
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setEditMode(true)}
-            >
+            <Button onClick={() => setEditMode(true)} className="w-full">
               <Edit2 className="w-4 h-4" /> Edit Profile
             </Button>
 
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={async () => {
-                await fetch("/api/logout", {
-                  method: "POST",
-                  credentials: "include",
-                });
-                localStorage.removeItem("user");
-                navigate("/login");
-              }}
-            >
+            <Button variant="ghost" onClick={handleLogout} className="w-full">
               <LogOut className="w-4 h-4" /> Logout
             </Button>
           </div>
         </div>
 
-        {/* ---------------- MAIN ---------------- */}
+        {/* RIGHT */}
         <div className="lg:col-span-2 space-y-6">
+
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Stat icon={<Heart />} label="Donations" value="--" />
@@ -194,9 +185,7 @@ const Profile = () => {
 
             <div className="p-6">
               {activeTab === "overview" && (
-                <p className="text-muted-foreground">
-                  Thank you for being a blood donor ❤️
-                </p>
+                <p>Thank you for being a donor ❤️</p>
               )}
 
               {activeTab === "settings" && (
@@ -209,10 +198,10 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* ---------------- EDIT MODAL ---------------- */}
+      {/* EDIT MODAL */}
       {editMode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card p-6 rounded-2xl w-full max-w-md space-y-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold">Edit Profile</h3>
 
             {["email", "phone", "location", "last_donation"].map((field) => (
@@ -224,7 +213,6 @@ const Profile = () => {
                   setForm({ ...form, [field]: e.target.value })
                 }
                 className="w-full border p-2 rounded"
-                placeholder={field.replace("_", " ")}
               />
             ))}
 
@@ -256,7 +244,7 @@ const Info = ({ icon, value }) => (
 
 const Stat = ({ icon, label, value }) => (
   <div className="bg-card border rounded-2xl p-4 text-center">
-    <div className="mx-auto mb-2 text-primary">{icon}</div>
+    <div className="mb-2 text-primary">{icon}</div>
     <div className="font-bold">{value}</div>
     <div className="text-sm text-muted-foreground">{label}</div>
   </div>

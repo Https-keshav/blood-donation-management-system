@@ -16,27 +16,31 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("/api/login", {
+      /* ✅ CALL BACKEND */
+      const res = await fetch("http://localhost:5000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(formData),
       });
 
-      if (!res.ok) throw new Error("Login failed");
+      const data = await res.json();
 
-      // ✅ STORE LOGIN STATE (VERY IMPORTANT)
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email: formData.email,
-          isLoggedIn: true,
-        })
-      );
+      /* ❌ HANDLE ERROR RESPONSE */
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
 
+      /* ✅ STORE JWT TOKEN */
+      localStorage.setItem("token", data.token);
+
+      /* ✅ STORE USER INFO */
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      /* ✅ REDIRECT */
       navigate("/dashboard");
+
     } catch (err) {
-      alert("Invalid email or password");
+      alert(err.message || "Invalid email or password");
     }
   };
 
@@ -61,6 +65,7 @@ const Login = () => {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Email Address
@@ -79,6 +84,7 @@ const Login = () => {
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Password

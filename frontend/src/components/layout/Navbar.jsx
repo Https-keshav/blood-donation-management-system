@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Droplet, User, LogIn, LayoutDashboard } from "lucide-react";
-import API from "@/api/api"; // ✅ use axios instance
+import API from "@/api/api";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,19 +19,34 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  /* ---------------- AUTH CHECK ---------------- */
+  /* ✅ CHECK AUTH */
   useEffect(() => {
     const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setUser(null);
+        return;
+      }
+
       try {
-        const res = await API.get("/api/me"); // ✅ FIXED
+        const res = await API.get("/api/me");
         setUser(res.data);
-      } catch (err) {
+      } catch {
         setUser(null);
       }
     };
 
     checkAuth();
   }, []);
+
+  /* ✅ LOGOUT */
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    navigate("/login");
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b">
@@ -54,10 +69,10 @@ const Navbar = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                className={`px-4 py-2 rounded-lg text-sm ${
                   isActive(link.path)
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted"
+                    : "hover:bg-muted"
                 }`}
               >
                 {link.name}
@@ -83,93 +98,24 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/dashboard")}
-                >
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                <Button onClick={() => navigate("/dashboard")}>
                   Dashboard
                 </Button>
 
-                <button
-                  onClick={() => navigate("/profile")}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted"
-                >
-                  <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
-                  <span className="text-sm font-medium">
-                    {user?.full_name?.split(" ")[0] || "User"}
-                  </span>
-                </button>
+                <span>{user?.full_name}</span>
+
+                <Button variant="ghost" onClick={handleLogout}>
+                  Logout
+                </Button>
               </>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-muted"
-          >
+          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
             {isOpen ? <X /> : <Menu />}
           </button>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden bg-card border-b px-4 py-4 space-y-2">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              onClick={() => setIsOpen(false)}
-              className="block px-4 py-3 rounded-lg hover:bg-muted"
-            >
-              {link.name}
-            </Link>
-          ))}
-
-          {!user ? (
-            <>
-              <Link to="/login" onClick={() => setIsOpen(false)}>
-                <Button className="w-full" variant="outline">
-                  Login
-                </Button>
-              </Link>
-              <Link to="/register" onClick={() => setIsOpen(false)}>
-                <Button className="w-full" variant="hero">
-                  Register
-                </Button>
-              </Link>
-            </>
-          ) : (
-            <>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate("/dashboard");
-                }}
-              >
-                Dashboard
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate("/profile");
-                }}
-              >
-                My Profile
-              </Button>
-            </>
-          )}
-        </div>
-      )}
     </nav>
   );
 };
