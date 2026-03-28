@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Droplet, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import API from "@/api"; // ✅ IMPORTANT
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,37 +17,33 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      /* ✅ CALL BACKEND */
-      const res = await fetch("http://localhost:5000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const res = await API.post("/api/login", {
+        email: formData.email,
+        password: formData.password,
       });
 
-      const data = await res.json();
+      const data = res.data;
 
-      /* ❌ HANDLE ERROR RESPONSE */
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
-      /* ✅ STORE JWT TOKEN */
+      /* ✅ STORE TOKEN */
       localStorage.setItem("token", data.token);
 
-      /* ✅ STORE USER INFO */
+      /* ✅ STORE USER */
       localStorage.setItem("user", JSON.stringify(data.user));
 
       /* ✅ REDIRECT */
       navigate("/dashboard");
 
     } catch (err) {
-      alert(err.message || "Invalid email or password");
+      const message =
+        err.response?.data?.message || "Invalid email or password ❌";
+      alert(message);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center gradient-hero pt-20 pb-12 px-4">
       <div className="w-full max-w-md">
+
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
@@ -65,6 +62,7 @@ const Login = () => {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+
             {/* Email */}
             <div>
               <label className="block text-sm font-medium mb-2">

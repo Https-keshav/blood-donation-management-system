@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Droplet,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { Droplet, Eye, EyeOff } from "lucide-react";
+import API from "@/api"; // ✅ IMPORTANT
 
 const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -28,46 +25,33 @@ const Register = () => {
     e.preventDefault();
 
     try {
-      /* ✅ CALL BACKEND */
-      const res = await fetch("http://localhost:5000/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          full_name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          blood_group: formData.bloodGroup,
-          location: formData.location,
-          last_donation: formData.lastDonation || null,
-          is_available: formData.isAvailable,
-        }),
+      const res = await API.post("/api/register", {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        blood_group: formData.bloodGroup,
+        location: formData.location,
+        last_donation: formData.lastDonation || null,
+        is_available: formData.isAvailable,
       });
 
-      const data = await res.json();
-
-      /* ❌ HANDLE ERROR */
-      if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-
-      /* ✅ SUCCESS */
-      alert("Registration successful");
-
-      /* OPTIONAL: auto login can be added later */
-
+      // ✅ SUCCESS
+      alert("Registration successful ✅");
       navigate("/login");
 
     } catch (err) {
-      alert(err.message || "Registration failed");
+      // ✅ ERROR HANDLING
+      const message =
+        err.response?.data?.message || "Registration failed ❌";
+      alert(message);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center gradient-hero pt-24 pb-12 px-4">
       <div className="w-full max-w-lg">
+
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
