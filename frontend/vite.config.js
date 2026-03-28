@@ -9,11 +9,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-      },
-      "/auth": {
-        target: "http://localhost:3000",
+        target: "http://localhost:5000", // your backend port
         changeOrigin: true,
       },
     },
